@@ -1,0 +1,38 @@
+<%
+const body = `
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">🐝</div>
+      <h1 style="font-family: 'Quicksand', sans-serif; font-weight: 800; color: #4A3B32;">BeeSMART</h1>
+      <p>Create your account</p>
+    </div>
+    ${ typeof error !== 'undefined' && error ? '<div class="alert alert-error">' + error + '</div>' : '' }
+    <form method="POST" action="/register" class="auth-form">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" required placeholder="John Doe" autocomplete="name"/>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required placeholder="Min. 8 characters" autocomplete="new-password" minlength="6"/>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+    </form>
+    <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
+  </div>
+  <div class="auth-visual">
+    <div class="honeycomb-bg"></div>
+    <div class="auth-tagline">
+      <h2>Join the hive.</h2>
+      <p>Professional beekeeping management for modern apiaries.</p>
+    </div>
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { body, title: title || 'Register - BeeSMART', user: null }) %>

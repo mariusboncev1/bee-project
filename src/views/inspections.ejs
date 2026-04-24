@@ -1,0 +1,47 @@
+<%
+const body = `
+<div class="page-header" style="align-items: center;">
+  <div>
+    <a href="/apiaries/${hive.apiary ? hive.apiary.id : ''}/hives" class="back-link">← Back to Hives</a>
+    <h1>Hive #${hive.number} — Inspections</h1>
+  </div>
+  <div style="display: flex; gap: 1rem; align-items: center;">
+    <div class="ws-indicator" id="wsIndicator" title="Real-time connection">
+      <span class="ws-dot"></span><span class="ws-label">Live</span>
+    </div>
+    <div class="notification-bell" id="notifBell">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+    </div>
+    <button class="btn btn-primary" onclick="showModal('addInspectionModal')" style="margin-left:1rem;">+ Add Inspection</button>
+  </div>
+</div>
+
+<div class="inspections-list">
+  ${ inspections.length === 0 ? '<div class="empty-full"><div style="font-size:4rem">🔍</div><h2>No inspections yet</h2><p>Add your first inspection record.</p><button class="btn btn-primary" onclick="showModal(\'addInspectionModal\')">Add Inspection</button></div>' : inspections.map(i => '<div class="inspection-card"><div class="inspection-header"><div class="inspection-date">' + new Date(i.inspectedAt).toLocaleDateString() + '</div><span class="badge badge-' + (i.temperament === 'calm' ? 'green' : i.temperament === 'moderate' ? 'amber' : 'red') + '">' + i.temperament + '</span><button class="icon-btn danger" onclick="deleteInspection(\'' + i.id + '\')">✕</button></div><div class="inspection-stats"><div class="insp-stat"><span class="insp-label">Queen seen</span><span class="insp-val">' + (i.queenSeen ? '✓ Yes' : '✗ No') + '</span></div><div class="insp-stat"><span class="insp-label">Brood frames</span><span class="insp-val">' + i.broodFrames + '</span></div><div class="insp-stat"><span class="insp-label">Honey frames</span><span class="insp-val">' + i.honeyFrames + '</span></div><div class="insp-stat"><span class="insp-label">Harvest</span><span class="insp-val">' + i.honeyHarvestKg + ' kg</span></div></div>' + (i.treatments ? '<p class="inspection-notes" style="background:#EBF4FF;color:#2B6CB0;margin-bottom:1rem;"><strong>Treatments:</strong> ' + i.treatments + '</p>' : '') + (i.notes ? '<p class="inspection-notes">' + i.notes + '</p>' : '') + '</div>').join('')
+  }
+</div>
+
+<div class="modal-overlay" id="addInspectionModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Inspection</h3><button class="modal-close" onclick="hideModal('addInspectionModal')">×</button></div>
+    <form id="addInspectionForm">
+      <input type="hidden" name="hiveId" value="${hive.id}"/>
+      <div class="form-group"><label>Date *</label><input type="date" name="inspectedAt" required value="${new Date().toISOString().split('T')[0]}"/></div>
+      <div class="form-group"><label>Queen Seen</label><select name="queenSeen"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Brood Frames</label><input type="number" name="broodFrames" value="0" min="0"/></div>
+      <div class="form-group"><label>Honey Frames</label><input type="number" name="honeyFrames" value="0" min="0"/></div>
+      <div class="form-group"><label>Temperament</label><select name="temperament"><option value="calm">Calm</option><option value="moderate">Moderate</option><option value="aggressive">Aggressive</option></select></div>
+      <div class="form-group"><label>Honey Harvest (kg)</label><input type="number" name="honeyHarvestKg" value="0" min="0" step="0.1"/></div>
+      <div class="form-group"><label>Treatments Applied</label><input type="text" name="treatments" placeholder="Varroa treatment..."/></div>
+      <div class="form-group"><label>Notes</label><textarea name="notes" placeholder="Observations..."></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="hideModal('addInspectionModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Inspection</button>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { body, title, user, hive, inspections }) %>

@@ -1,0 +1,122 @@
+<%
+const body = `
+<div class="page-header" style="align-items: center;">
+  <div>
+    <a href="/apiaries" class="back-link">← Back to Apiaries</a>
+    <h1>${apiary.name} — Hives</h1>
+    <p class="subtitle">${apiary.city || ''}</p>
+  </div>
+  <div style="display: flex; gap: 1rem; align-items: center;">
+    <div class="ws-indicator" id="wsIndicator" title="Real-time connection">
+      <span class="ws-dot"></span><span class="ws-label">Live</span>
+    </div>
+    <div class="notification-bell" id="notifBell">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+    </div>
+    <div class="dropdown" style="position: relative; margin-left: 1rem;">
+      <button class="btn btn-primary" onclick="const d = document.getElementById('addDropdown'); d.style.display = d.style.display === 'block' ? 'none' : 'block'">+ Add ▾</button>
+      <div id="addDropdown" style="display: none; position: absolute; right: 0; top: 100%; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; min-width: 160px; margin-top: 0.5rem;">
+        <button class="btn btn-ghost" style="width: 100%; text-align: left; padding: 0.5rem; justify-content: flex-start;" onclick="showModal('addHiveModal'); document.getElementById('addDropdown').style.display='none'">🐝 Add Hive</button>
+        <button class="btn btn-ghost" style="width: 100%; text-align: left; padding: 0.5rem; margin-top: 4px; justify-content: flex-start;" onclick="showModal('addInspectionModal'); document.getElementById('addDropdown').style.display='none'">🔍 Add Inspection</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hives-grid">
+  ${ hives.map(h => `
+  <div class="hive-card" style="border-top: 4px solid ${h.color || '#FFA500'};">
+    <div class="hive-card-header">
+      <div style="display:flex; align-items:center;">
+        <div class="hive-number">#${h.number}</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('https://beesmart.app/hives/' + h.id + '/inspections')}" alt="QR" style="width: 28px; height: 28px; margin-left: 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="Scan for Hive Details">
+      </div>
+      <span class="badge badge-${ h.status === 'active' ? 'green' : h.status === 'inactive' ? 'gray' : 'red' }">${h.status}</span>
+    </div>
+    <div class="hive-details">
+      ${ h.queenBreed ? '<div class="hive-meta">🐝 Breed: ' + h.queenBreed + '</div>' : '' }
+      ${ h.queenYear ? '<div class="hive-meta">📅 Queen: ' + h.queenYear + ' <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + (h.queenYear % 10 === 0 || h.queenYear % 10 === 5 ? '#0000FF' : h.queenYear % 10 === 1 || h.queenYear % 10 === 6 ? '#FFFFFF' : h.queenYear % 10 === 2 || h.queenYear % 10 === 7 ? '#FFFF00' : h.queenYear % 10 === 3 || h.queenYear % 10 === 8 ? '#FF0000' : '#008000') + ';border:1px solid #ccc;margin-left:4px;"></span></div>' : '' }
+      ${ h.dateOfHatching ? '<div class="hive-meta">🥚 ' + new Date(h.dateOfHatching).toLocaleDateString() + '</div>' : '' }
+    </div>
+    ${ h.notes ? '<p class="hive-notes">' + h.notes + '</p>' : '' }
+    <div class="hive-actions">
+      <a href="/hives/${h.id}/inspections" class="btn btn-outline">Inspections</a>
+      <button class="icon-btn danger" onclick="deleteHive('${h.id}')" title="Delete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>
+  </div>
+  `).join('') }
+  ${ hives.length === 0 ? `
+  <div class="empty-full">
+    <div style="font-size:4rem">🐝</div>
+    <h2>No hives yet</h2>
+    <p>Add your first hive to start tracking.</p>
+    <button class="btn btn-primary" onclick="showModal('addHiveModal')">Add First Hive</button>
+  </div>` : '' }
+</div>
+
+<!-- Add Hive Modal -->
+<div class="modal-overlay" id="addHiveModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><h3>Add New Hive</h3><button class="modal-close" onclick="hideModal('addHiveModal')">×</button></div>
+    <form id="addHiveForm">
+      <input type="hidden" name="apiaryId" value="${apiary.id}"/>
+      <div class="form-group"><label>Hive Number *</label><input type="number" name="number" required/></div>
+      <div class="form-group"><label>Queen Breed</label><input type="text" name="queenBreed"/></div>
+      <div class="form-group"><label>Queen Year</label>
+        <select name="queenYear">
+          <option value="">Unknown</option>
+          <option value="2026">2026 (White ⚪)</option>
+          <option value="2025">2025 (Blue 🔵)</option>
+          <option value="2024">2024 (Green 🟢)</option>
+          <option value="2023">2023 (Red 🔴)</option>
+          <option value="2022">2022 (Yellow 🟡)</option>
+          <option value="2021">2021 (White ⚪)</option>
+          <option value="2020">2020 (Blue 🔵)</option>
+          <option value="2019">2019 (Green 🟢)</option>
+          <option value="2018">2018 (Red 🔴)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Date of Hatching</label><input type="date" name="dateOfHatching"/></div>
+      <div class="form-group"><label>Color</label><input type="color" name="color" value="#FFA500"/></div>
+      <div class="form-group"><label>Notes</label><textarea name="notes" placeholder="Notes..."></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="hideModal('addHiveModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Hive</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Inspection Modal -->
+<div class="modal-overlay" id="addInspectionModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><h3>Add Inspection</h3><button class="modal-close" onclick="hideModal('addInspectionModal')">×</button></div>
+    <form id="addInspectionForm">
+      <div class="form-group">
+        <label>Select Hive *</label>
+        <select name="hiveId" required>
+          <option value="" disabled selected>Select a hive</option>
+          ${hives.map(h => '<option value="' + h.id + '">Hive #' + h.number + '</option>').join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Date *</label><input type="date" name="inspectedAt" required value="${new Date().toISOString().split('T')[0]}"/></div>
+      <div class="form-group"><label>Queen Seen</label><select name="queenSeen"><option value="false">No</option><option value="true">Yes</option></select></div>
+      <div class="form-group"><label>Brood Frames</label><input type="number" name="broodFrames" value="0" min="0"/></div>
+      <div class="form-group"><label>Honey Frames</label><input type="number" name="honeyFrames" value="0" min="0"/></div>
+      <div class="form-group"><label>Temperament</label><select name="temperament"><option value="calm">Calm</option><option value="moderate">Moderate</option><option value="aggressive">Aggressive</option></select></div>
+      <div class="form-group"><label>Honey Harvest (kg)</label><input type="number" name="honeyHarvestKg" value="0" min="0" step="0.1"/></div>
+      <div class="form-group"><label>Treatments Applied</label><input type="text" name="treatments" placeholder="Varroa treatment..."/></div>
+      <div class="form-group"><label>Notes</label><textarea name="notes" placeholder="Observations..."></textarea></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="hideModal('addInspectionModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Inspection</button>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { body, title, user, apiary, hives }) %>

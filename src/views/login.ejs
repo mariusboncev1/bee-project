@@ -1,0 +1,34 @@
+<%
+const body = `
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-logo">🐝</div>
+      <h1 style="font-family: 'Quicksand', sans-serif; font-weight: 800; color: #4A3B32;">BeeSMART</h1>
+      <p>Beekeeping Management</p>
+    </div>
+    ${ typeof error !== 'undefined' && error ? '<div class="alert alert-error">' + error + '</div>' : '' }
+    <form method="POST" action="/login" class="auth-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+    </form>
+    <p class="auth-footer">Don't have an account? <a href="/register">Register</a></p>
+  </div>
+  <div class="auth-visual">
+    <div class="honeycomb-bg"></div>
+    <div class="auth-tagline">
+      <h2>Your hives,<br/>always in hand.</h2>
+      <p>Track apiaries, hives, inspections and harvests from one beautiful dashboard.</p>
+    </div>
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { body, title: title || 'Login - BeeSMART', user: null }) %>

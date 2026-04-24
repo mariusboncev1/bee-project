@@ -1,0 +1,130 @@
+<%
+const body = `
+<div class="page-hero">
+  <div class="hero-bg-honeycomb"></div>
+  <div class="hero-top" style="position: absolute; top: 1.5rem; right: 1.5rem; display: flex; gap: 1rem; align-items: center; z-index: 10;">
+    <div class="ws-indicator" id="wsIndicator" title="Real-time connection">
+      <span class="ws-dot"></span>
+      <span class="ws-label">Live</span>
+    </div>
+    <div class="notification-bell" id="notifBell" style="color: #fff;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <span class="notif-badge" id="notifBadge" style="display:none; background: #E53E3E; border-color: transparent;">0</span>
+    </div>
+  </div>
+  <div class="hero-content">
+    <h1>Welcome back, ${user.name.split(' ')[0]} 🐝</h1>
+    <p>Here's your beekeeping overview</p>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon apiaries-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">${stats.apiaries}</div>
+      <div class="stat-label">Apiaries</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon hives-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/></svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">${stats.hives}</div>
+      <div class="stat-label">Total Hives</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon inspect-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">${stats.inspections}</div>
+      <div class="stat-label">Inspections</div>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Apiaries List (SSR) -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <h2>My Apiaries</h2>
+      <a href="/apiaries" class="btn btn-sm btn-primary">View All</a>
+    </div>
+    ${apiaries.length === 0 ? `
+      <div class="empty-state">
+        <div class="empty-icon">🏡</div>
+        <p>No apiaries yet. Create your first one!</p>
+        <button class="btn btn-primary" onclick="showModal('addApiaryModal')">Add Apiary</button>
+      </div>
+    ` : `
+      <div class="apiary-list">
+        ${apiaries.map(a => `
+        <a href="/apiaries/${a.id}/hives" class="apiary-item">
+          <div class="apiary-icon">🏠</div>
+          <div class="apiary-details">
+            <div class="apiary-name">${a.name}</div>
+            <div class="apiary-meta">${a.city || 'No location'} · ${a.hives ? a.hives.length : 0} hives</div>
+          </div>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9,18 15,12 9,6"/></svg>
+        </a>
+        `).join('')}
+      </div>
+    `}
+  </div>
+
+  <!-- Activity Log -->
+  <div class="dashboard-card">
+    <div class="card-header">
+      <h2>Recent Activity</h2>
+    </div>
+    <div class="activity-list">
+      ${logs.length === 0 ? `
+        <div class="empty-state"><div class="empty-icon">📋</div><p>No activity yet</p></div>
+      ` : logs.map(log => `
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div class="activity-content">
+            <div class="activity-action">${log.action.replace(/_/g, ' ')}</div>
+            <div class="activity-time">${new Date(log.createdAt).toLocaleDateString()}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</div>
+
+<!-- Add Apiary Modal -->
+<div class="modal-overlay" id="addApiaryModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add New Apiary</h3>
+      <button class="modal-close" onclick="hideModal('addApiaryModal')">×</button>
+    </div>
+    <form id="addApiaryForm">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" name="name" id="apiaryName" required placeholder="My Apiary" />
+      </div>
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" name="city" id="apiaryCity" placeholder="City" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" id="apiaryDesc" placeholder="Description..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="hideModal('addApiaryModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Apiary</button>
+      </div>
+    </form>
+  </div>
+</div>
+`;
+%>
+<%- include('layout', { body, title, user, stats, apiaries, logs }) %>

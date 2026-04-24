@@ -1,0 +1,21 @@
+{
+  "name": "ApiNote",
+  "short_name": "ApiNote",
+  "description": "Professional Beekeeping Management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F9FA",
+  "theme_color": "#FFA500",
+  "icons": [
+    {
+      "src": "/img/bee-icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/img/bee-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

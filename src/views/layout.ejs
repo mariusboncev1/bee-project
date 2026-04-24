@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="BeeSMART - Professional Beekeeping Management System" />
+  <title><%= title || 'BeeSMART' %></title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/img/bee-icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Quicksand:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <% if (user) { %>
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="/dashboard" class="brand" style="text-decoration:none;">
+        <svg class="brand-icon" viewBox="0 0 40 40" fill="none">
+          <ellipse cx="20" cy="22" rx="12" ry="9" fill="#FFA500"/>
+          <ellipse cx="20" cy="22" rx="12" ry="9" fill="url(#beeStripes)" opacity="0.6"/>
+          <path d="M12 16 Q8 10 14 8 Q20 6 20 14" fill="#FFA500"/>
+          <path d="M28 16 Q32 10 26 8 Q20 6 20 14" fill="#FFA500"/>
+          <ellipse cx="16" cy="18" rx="5" ry="3" fill="rgba(255,255,255,0.4)" transform="rotate(-20 16 18)"/>
+          <ellipse cx="24" cy="18" rx="5" ry="3" fill="rgba(255,255,255,0.4)" transform="rotate(20 24 18)"/>
+          <circle cx="17" cy="22" r="1.5" fill="#1a1a1a"/>
+          <circle cx="23" cy="22" r="1.5" fill="#1a1a1a"/>
+          <defs><linearGradient id="beeStripes" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1a1a"/><stop offset="33%" stop-color="#1a1a1a"/><stop offset="33%" stop-color="#FFA500"/><stop offset="66%" stop-color="#FFA500"/><stop offset="66%" stop-color="#1a1a1a"/><stop offset="100%" stop-color="#1a1a1a"/></linearGradient></defs>
+        </svg>
+        <span class="brand-name" style="font-family: 'Quicksand', sans-serif; font-weight: 800; color: #4A3B32;">BeeSMART</span>
+      </a>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar"><%= user.name ? user.name[0].toUpperCase() : 'U' %></div>
+      <div class="user-info">
+        <div class="user-name"><%= user.name %></div>
+        <div class="user-email"><%= user.email %></div>
+      </div>
+    </div>
+    <ul class="nav-links">
+      <li><a href="/dashboard" class="nav-link <%= typeof title !== 'undefined' && title.includes('Dashboard') ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a></li>
+      <li><a href="/apiaries" class="nav-link <%= typeof title !== 'undefined' && title.includes('Apiaries') ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        My Apiaries
+      </a></li>
+      <li><a href="/profile" class="nav-link <%= typeof title !== 'undefined' && title.includes('Profile') ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Profile
+      </a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="/logout" class="logout-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </a>
+    </div>
+  </nav>
+
+  <!-- Mobile overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <div class="main-wrapper">
+    <!-- Mobile Menu Button -->
+    <button class="menu-btn mobile-only-btn" onclick="toggleSidebar()" style="position:absolute; top:1rem; left:1rem; z-index:95; background:var(--card-bg); padding:8px; border-radius:8px; border:1px solid var(--border);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+
+    <!-- Notification toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Page content -->
+    <main class="page-content">
+      <%- body %>
+    </main>
+  </div>
+
+  <% } else { %>
+  <main class="auth-main"><%- body %></main>
+  <% } %>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
