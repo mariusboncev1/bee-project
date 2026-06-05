@@ -28,15 +28,14 @@ if (process.env.DB_DIALECT === 'sqlite') {
   );
 }
 
-// ── Model imports ──────────────────────────────────────────────
 const User        = require('./User')(sequelize);
 const UserProfile = require('./UserProfile')(sequelize);
 const Apiary      = require('./Apiary')(sequelize);
 const Hive        = require('./Hive')(sequelize);
 const Inspection  = require('./Inspection')(sequelize);
-const Log         = require('./Log')(sequelize);
+const Log          = require('./Log')(sequelize);
+const RefreshToken = require('./RefreshToken')(sequelize);
 
-// ── Associations ───────────────────────────────────────────────
 // User 1:1 UserProfile
 User.hasOne(UserProfile, { foreignKey: 'userId', as: 'profile', onDelete: 'CASCADE' });
 UserProfile.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -57,4 +56,8 @@ Inspection.belongsTo(Hive, { foreignKey: 'hiveId', as: 'hive' });
 User.hasMany(Log, { foreignKey: 'userId', as: 'logs', onDelete: 'SET NULL' });
 Log.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-module.exports = { sequelize, User, UserProfile, Apiary, Hive, Inspection, Log };
+// User 1:N RefreshToken
+User.hasMany(RefreshToken, { foreignKey: 'userId', as: 'refreshTokens', onDelete: 'CASCADE' });
+RefreshToken.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+module.exports = { sequelize, User, UserProfile, Apiary, Hive, Inspection, Log, RefreshToken };

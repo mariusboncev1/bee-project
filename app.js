@@ -10,12 +10,15 @@ const { attachUser } = require('./src/middleware/auth');
 const { requireAuth } = require('./src/middleware/auth');
 
 // Routes
-const authRoutes       = require('./src/routes/auth');
-const usersRoutes      = require('./src/routes/users');
-const apiariesRoutes   = require('./src/routes/apiaries');
-const hivesRoutes      = require('./src/routes/hives');
+const authRoutes        = require('./src/routes/auth');
+const apiAuthRoutes     = require('./src/routes/api/auth');
+const togglRoutes       = require('./src/routes/api/toggl');
+const communityRoutes   = require('./src/routes/api/community');
+const usersRoutes       = require('./src/routes/users');
+const apiariesRoutes    = require('./src/routes/apiaries');
+const hivesRoutes       = require('./src/routes/hives');
 const inspectionsRoutes = require('./src/routes/inspections');
-const logsRoutes       = require('./src/routes/logs');
+const logsRoutes        = require('./src/routes/logs');
 
 const app = express();
 const server = http.createServer(app);
@@ -125,7 +128,15 @@ app.get('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// Community Map page
+app.get('/community', requireAuth, (req, res) => {
+  res.render('community-map', { title: 'Community Map - ApiNote' });
+});
+
 // ── API Routes ───────────────────────────────────────────────
+app.use('/api/auth',        apiAuthRoutes);
+app.use('/api/toggl',       togglRoutes);
+app.use('/api/community',   communityRoutes);
 app.use('/api/users',       usersRoutes);
 app.use('/api/apiaries',    apiariesRoutes);
 app.use('/api/hives',       hivesRoutes);
@@ -134,11 +145,8 @@ app.use('/api/logs',        logsRoutes);
 app.use('/',                authRoutes);
 
 // ── WebSocket ─────────────────────────────────────────────────
-io.on('connection', (socket) => {
-  console.log('🔌 Client connected:', socket.id);
-  socket.emit('welcome', { message: 'Connected to ApiNote real-time server' });
-  socket.on('disconnect', () => console.log('🔌 Client disconnected:', socket.id));
-});
+const { initializeWebSocket } = require('./src/websocket/socketHandler');
+initializeWebSocket(io);
 
 // ── Sync DB & Start ──────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
@@ -154,4 +162,4 @@ sequelize.sync({ alter: true })
     server.listen(PORT, () => console.log(`⚠️  ApiNote running (no DB) on http://localhost:${PORT}`));
   });
 
-module.exports = app;
+module.exports = { app, server, io };

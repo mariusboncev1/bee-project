@@ -1,0 +1,253 @@
+<%
+const body = `
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  #map {
+    height: 600px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .map-controls {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  .map-controls input, .map-controls button {
+    margin: 5px;
+    padding: 8px 12px;
+  }
+  .beekeeper-card {
+    background: white;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .beekeeper-card h4 {
+    margin: 0 0 10px 0;
+    color: #F2A900;
+  }
+  .distance-badge {
+    background: #F2A900;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .leaflet-popup-content h3 {
+    margin: 0 0 10px 0;
+    color: #F2A900;
+  }
+  #nearby-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+</style>
+
+<div class="container" style="max-width: 1200px; margin: 20px auto; padding: 20px;">
+  <h1 style="color: #F2A900; margin-bottom: 20px;">
+    Community Map
+  </h1>
+
+  <div class="map-controls">
+    <h3>Find Nearby Beekeepers</h3>
+    <div>
+      <input type="number" id="searchLat" placeholder="Latitude" step="0.0001" style="width: 150px;" />
+      <input type="number" id="searchLng" placeholder="Longitude" step="0.0001" style="width: 150px;" />
+      <input type="number" id="searchRadius" placeholder="Radius (km)" value="50" style="width: 120px;" />
+      <button onclick="searchNearby()" style="background: #F2A900; color: white; border: none; cursor: pointer;">
+        🔍 Search
+      </button>
+      <button onclick="useMyLocation()" style="background: #28a745; color: white; border: none; cursor: pointer;">
+        📍 Use My Location
+      </button>
+      <button onclick="showAllMembers()" style="background: #007bff; color: white; border: none; cursor: pointer;">
+        🌍 Show All
+      </button>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="nearby-results" style="margin-top: 30px; display: none;">
+    <h2>Nearby Beekeepers</h2>
+    <div id="nearby-list"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([46.7712, 23.6236], 8);
+  
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  const myIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+
+  const otherIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-gold.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  });
+
+  let markers = [];
+  let searchCircle = null;
+
+  async function showAllMembers() {
+    try {
+      const response = await fetch('/api/community/map');
+      const data = await response.json();
+      
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+      
+      data.members.forEach(member => {
+        const marker = L.marker(
+          [member.apiary.latitude, member.apiary.longitude],
+          { icon: otherIcon }
+        ).addTo(map);
+        
+        marker.bindPopup(\`
+          <div>
+            <h3>🐝 \${member.userName}</h3>
+            <p><strong>Apiary:</strong> \${member.apiary.name}</p>
+            <p><strong>Location:</strong> \${member.apiary.city || 'N/A'}</p>
+            <p><strong>Experience:</strong> \${member.experienceYears || 'N/A'} years</p>
+            <p><strong>Member since:</strong> \${new Date(member.memberSince).getFullYear()}</p>
+            \${member.bio ? '<p><em>' + member.bio + '</em></p>' : ''}
+          </div>
+        \`);
+        
+        markers.push(marker);
+      });
+      
+      document.getElementById('nearby-results').style.display = 'none';
+      
+      if (data.members.length === 0) {
+        alert('No community members with GPS coordinates found yet.');
+      }
+    } catch (error) {
+      console.error('Error loading community members:', error);
+      alert('Failed to load community map');
+    }
+  }
+
+  async function searchNearby() {
+    const lat = parseFloat(document.getElementById('searchLat').value);
+    const lng = parseFloat(document.getElementById('searchLng').value);
+    const radius = parseFloat(document.getElementById('searchRadius').value);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      alert('Please enter valid coordinates');
+      return;
+    }
+    
+    try {
+      const response = await fetch(\`/api/community/nearby?lat=\${lat}&lng=\${lng}&radius=\${radius}\`);
+      const data = await response.json();
+      
+      if (searchCircle) {
+        map.removeLayer(searchCircle);
+      }
+      
+      searchCircle = L.circle([lat, lng], {
+        color: '#F2A900',
+        fillColor: '#F2A900',
+        fillOpacity: 0.1,
+        radius: radius * 1000
+      }).addTo(map);
+      
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+      
+      const centerMarker = L.marker([lat, lng], { icon: myIcon }).addTo(map);
+      centerMarker.bindPopup('<strong>Search Center</strong>');
+      markers.push(centerMarker);
+      
+      data.beekeepers.forEach(beekeeper => {
+        const marker = L.marker(
+          [beekeeper.apiary.latitude, beekeeper.apiary.longitude],
+          { icon: otherIcon }
+        ).addTo(map);
+        
+        marker.bindPopup(\`
+          <div>
+            <h3>🐝 \${beekeeper.userName}</h3>
+            <p><strong>Distance:</strong> <span class="distance-badge">\${beekeeper.distance} km</span></p>
+            <p><strong>Apiary:</strong> \${beekeeper.apiary.name}</p>
+            <p><strong>Location:</strong> \${beekeeper.apiary.city || 'N/A'}</p>
+            <p><strong>Experience:</strong> \${beekeeper.experienceYears || 'N/A'} years</p>
+            \${beekeeper.bio ? '<p><em>' + beekeeper.bio + '</em></p>' : ''}
+            \${beekeeper.phone ? '<p>📞 ' + beekeeper.phone + '</p>' : ''}
+          </div>
+        \`);
+        
+        markers.push(marker);
+      });
+      
+      map.setView([lat, lng], 10);
+      
+      const resultsList = document.getElementById('nearby-list');
+      resultsList.innerHTML = '';
+      
+      if (data.beekeepers.length === 0) {
+        resultsList.innerHTML = '<p>No beekeepers found within ' + radius + ' km</p>';
+      } else {
+        data.beekeepers.forEach(bk => {
+          resultsList.innerHTML += \`
+            <div class="beekeeper-card">
+              <h4>🐝 \${bk.userName} <span class="distance-badge">\${bk.distance} km away</span></h4>
+              <p><strong>Apiary:</strong> \${bk.apiary.name} (\${bk.apiary.city || 'N/A'})</p>
+              <p><strong>Experience:</strong> \${bk.experienceYears || 'N/A'} years</p>
+              \${bk.bio ? '<p><em>' + bk.bio + '</em></p>' : ''}
+              \${bk.phone ? '<p>📞 ' + bk.phone + '</p>' : ''}
+              \${bk.email ? '<p>📧 ' + bk.email + '</p>' : ''}
+            </div>
+          \`;
+        });
+      }
+      
+      document.getElementById('nearby-results').style.display = 'block';
+    } catch (error) {
+      console.error('Error searching nearby:', error);
+      alert('Failed to search nearby beekeepers');
+    }
+  }
+
+  function useMyLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          document.getElementById('searchLat').value = position.coords.latitude.toFixed(6);
+          document.getElementById('searchLng').value = position.coords.longitude.toFixed(6);
+          searchNearby();
+        },
+        (error) => {
+          alert('Unable to get your location: ' + error.message);
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by your browser');
+    }
+  }
+
+  showAllMembers();
+</script>
+`;
+%>
+<%- include('layout', { body, title, user }) %>
